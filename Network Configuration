@@ -1,0 +1,33 @@
+# This script configures network settings such as IP addresses, DNS servers, and network interfaces.
+
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$InterfaceAlias,
+
+    [Parameter(Mandatory = $true)]
+    [string]$IPAddress,
+
+    [Parameter(Mandatory = $true)]
+    [string]$SubnetMask,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Gateway,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$DNSServers
+)
+
+function Configure-Network {
+    param (
+        [string]$Alias,
+        [string]$IP,
+        [string]$Subnet,
+        [string]$Gateway,
+        [string[]]$DNS
+    )
+    New-NetIPAddress -InterfaceAlias $Alias -IPAddress $IP -PrefixLength $Subnet -DefaultGateway $Gateway
+    Set-DnsClientServerAddress -InterfaceAlias $Alias -ServerAddresses $DNS
+    Write-Host "Network configuration applied to $Alias."
+}
+
+Configure-Network -Alias $InterfaceAlias -IP $IPAddress -Subnet $SubnetMask -Gateway $Gateway -DNS $DNSServers

@@ -1,0 +1,57 @@
+# This script manages scheduled tasks, including creating, modifying, and deleting tasks.
+
+param (
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("Create", "Modify", "Delete")]
+    [string]$Action,
+
+    [Parameter(Mandatory = $true)]
+    [string]$TaskName,
+
+    [string]$ProgramPath,
+    [string]$Schedule
+)
+
+function Create-Task {
+    param (
+        [string]$Name,
+        [string]$Program,
+        [string]$Schedule
+    )
+    $trigger = New-ScheduledTaskTrigger -Daily -At $Schedule
+    $action = New-ScheduledTaskAction -Execute $Program
+    Register-ScheduledTask -TaskName $Name -Trigger $trigger -Action $action
+    Write-Host "Scheduled task $Name created successfully."
+}
+
+function Modify-Task {
+    param (
+        [string]$Name,
+        [string]$Program,
+        [string]$Schedule
+    )
+    $trigger = New-ScheduledTaskTrigger -Daily -At $Schedule
+    $action = New-ScheduledTaskAction -Execute $Program
+    Set-ScheduledTask -TaskName $Name -Trigger $trigger -Action $action
+    Write-Host "Scheduled task $Name modified successfully."
+}
+
+function Delete-Task {
+    param (
+        [string]$Name
+    )
+    Unregister-ScheduledTask -TaskName $Name -Confirm:$false
+    Write-Host "Scheduled task $Name deleted successfully."
+}
+
+switch ($Action) {
+    "Create" {
+        Create-Task -Name $TaskName -Program $ProgramPath -Schedule $Schedule
+    }
+    "Modify" {
+        Modify-Task -Name $TaskName -Program $ProgramPath -Schedule $Schedule
+    }
+    "Delete" {
+        Delete-Task -Name $TaskName
+    }
+}

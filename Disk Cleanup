@@ -1,0 +1,24 @@
+# This script identifies and removes unnecessary files to free up disk space.
+
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$DirectoryPath,
+
+    [Parameter(Mandatory = $true)]
+    [int]$DaysOld
+)
+
+function Cleanup-Files {
+    param (
+        [string]$Path,
+        [int]$Days
+    )
+    $files = Get-ChildItem -Path $Path -Recurse | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$Days) }
+    foreach ($file in $files) {
+        Remove-Item -Path $file.FullName -Force
+        Write-Host "Deleted file: $($file.FullName)"
+    }
+}
+
+Cleanup-Files -Path $DirectoryPath -Days $DaysOld
+Write-Host "Disk cleanup completed for files older than $DaysOld days in $DirectoryPath."

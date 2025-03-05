@@ -1,0 +1,34 @@
+# This script monitors log files for specific events or errors and sends notifications.
+
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$LogFilePath,
+
+    [Parameter(Mandatory = $true)]
+    [string]$SearchPattern,
+
+    [string]$EmailTo,
+    [string]$EmailFrom,
+    [string]$SmtpServer
+)
+
+function Monitor-LogFile {
+    param (
+        [string]$Path,
+        [string]$Pattern,
+        [string]$EmailTo,
+        [string]$EmailFrom,
+        [string]$SmtpServer
+    )
+    $content = Get-Content -Path $Path -Tail 10 -Wait
+    foreach ($line in $content) {
+        if ($line -match $Pattern) {
+            Write-Host "Match found: $line"
+            if ($EmailTo -and $EmailFrom -and $SmtpServer) {
+                Send-MailMessage -To $EmailTo -From $EmailFrom -Subject "Log Alert" -Body "Match found: $line" -SmtpServer $SmtpServer
+            }
+        }
+    }
+}
+
+Monitor-LogFile -Path $LogFilePath -Pattern $SearchPattern -EmailTo $EmailTo -EmailFrom $EmailFrom -SmtpServer $SmtpServer

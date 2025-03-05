@@ -1,0 +1,115 @@
+# This script generates a detailed system information report in HTML format.
+
+function Get-SystemInfo {
+    $sysInfo = [PSCustomObject]@{
+        ComputerName       = $env:COMPUTERNAME
+        UserName           = $env:USERNAME
+        OS                 = Get-CimInstance -ClassName Win32_OperatingSystem | Select-Object -ExpandProperty Caption
+        OSVersion          = [System.Environment]::OSVersion.Version.ToString()
+        Manufacturer       = (Get-CimInstance -ClassName Win32_ComputerSystem).Manufacturer
+        Model              = (Get-CimInstance -ClassName Win32_ComputerSystem).Model
+        Processor          = (Get-CimInstance -ClassName Win32_Processor).Name
+        TotalMemoryGB      = [math]::round((Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
+        DiskSpace          = Get-PSDrive -PSProvider FileSystem | Where-Object {$_.Used -gt 0} | Select-Object Name, @{Name="TotalGB";Expression={[math]::round($_.Used/1GB, 2)}}, @{Name="FreeGB";Expression={[math]::round($_.Free/1GB, 2)}}
+        NetworkAdapters    = Get-NetAdapter | Select-Object Name, Status, MacAddress, LinkSpeed
+        IPAddresses        = Get-NetIPAddress | Select-Object IPAddress, InterfaceAlias, AddressFamily
+        InstalledSoftware  = Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate
+    }
+    return $sysInfo
+}
+
+function Generate-HTMLReport {
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSCustomObject]$SystemInfo
+    )
+
+    $html = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Information Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .container { width: 80%; margin: 0 auto; }
+        h1 { background-color: #4CAF50; color: white; padding: 10px 0; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .section { margin-top: 20px; }
+        .section h2 { background-color: #f2f2f2; padding: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>System Information Report</h1>
+        <div class="section">
+            <h2>System Overview</h2>
+            <table>
+                <tr><th>Computer Name</th><td>$($SystemInfo.ComputerName)</td></tr>
+                <tr><th>User Name</th><td>$($SystemInfo.UserName)</td></tr>
+                <tr><th>Operating System</th><td>$($SystemInfo.OS)</td></tr>
+                <tr><th>OS Version</th><td>$($SystemInfo.OSVersion)</td></tr>
+                <tr><th>Manufacturer</th><td>$($SystemInfo.Manufacturer)</td></tr>
+                <tr><th>Model</th><td>$($SystemInfo.Model)</td></tr>
+                <tr><th>Processor</th><td>$($SystemInfo.Processor)</td></tr>
+                <tr><th>Total Memory (GB)</th><td>$($SystemInfo.TotalMemoryGB)</td></tr>
+            </table>
+        </div>
+        <div class="section">
+            <h2>Disk Space</h2>
+            <table>
+                <tr><th>Drive</th><th>Total Space (GB)</th><th>Free Space (GB)</th></tr>
+"@
+    foreach ($disk in $SystemInfo.DiskSpace) {
+        $html += "<tr><td>$($disk.Name)</td><td>$($disk.TotalGB)</td><td>$($disk.FreeGB)</td></tr>"
+    }
+    $html += @"
+            </table>
+        </div>
+        <div class="section">
+            <h2>Network Adapters</h2>
+            <table>
+                <tr><th>Name</th><th>Status</th><th>MAC Address</th><th>Link Speed</th></tr>
+"@
+    foreach ($adapter in $SystemInfo.NetworkAdapters) {
+        $html += "<tr><td>$($adapter.Name)</td><td>$($adapter.Status)</td><td>$($adapter.MacAddress)</td><td>$($adapter.LinkSpeed)</td></tr>"
+    }
+    $html += @"
+            </table>
+        </div>
+        <div class="section">
+            <h2>IP Addresses</h2>
+            <table>
+                <tr><th>IP Address</th><th>Interface Alias</th><th>Address Family</th></tr>
+"@
+    foreach ($ip in $SystemInfo.IPAddresses) {
+        $html += "<tr><td>$($ip.IPAddress)</td><td>$($ip.InterfaceAlias)</td><td>$($ip.AddressFamily)</td></tr>"
+    }
+    $html += @"
+            </table>
+        </div>
+        <div class="section">
+            <h2>Installed Software</h2>
+            <table>
+                <tr><th>Software</th><th>Version</th><th>Publisher</th><th>Install Date</th></tr>
+"@
+    foreach ($software in $SystemInfo.InstalledSoftware) {
+        $html += "<tr><td>$($software.DisplayName)</td><td>$($software.DisplayVersion)</td><td>$($software.Publisher)</td><td>$($software.InstallDate)</td></tr>"
+    }
+    $html += @"
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+"@
+
+    return $html
+}
+
+$systemInfo = Get-SystemInfo
+$htmlReport = Generate-HTMLReport -SystemInfo $systemInfo
+$reportPath = "SystemInformationReport.html"
+$htmlReport | Out-File -FilePath $reportPath -Encoding utf8
+Write-Host "System Information Report generated at: $reportPath"

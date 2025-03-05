@@ -1,0 +1,67 @@
+# This script manages user accounts on a Windows system.
+
+param (
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("Create", "Modify", "Delete")]
+    [string]$Action,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Username,
+
+    [string]$Password,
+    [string]$FullName
+)
+
+function Create-User {
+    param (
+        [string]$Username,
+        [string]$Password,
+        [string]$FullName
+    )
+    $userParams = @{
+        Name = $Username
+        AccountPassword = (ConvertTo-SecureString -AsPlainText $Password -Force)
+        FullName = $FullName
+        PasswordNeverExpires = $true
+        Enabled = $true
+    }
+    New-LocalUser @userParams
+    Add-LocalGroupMember -Group "Users" -Member $Username
+    Write-Host "User $Username created successfully."
+}
+
+function Modify-User {
+    param (
+        [string]$Username,
+        [string]$Password,
+        [string]$FullName
+    )
+    if ($FullName) {
+        Set-LocalUser -Name $Username -FullName $FullName
+    }
+    if ($Password) {
+        $securePassword = (ConvertTo-SecureString -AsPlainText $Password -Force)
+        Set-LocalUser -Name $Username -Password $securePassword
+    }
+    Write-Host "User $Username modified successfully."
+}
+
+function Delete-User {
+    param (
+        [string]$Username
+    )
+    Remove-LocalUser -Name $Username
+    Write-Host "User $Username deleted successfully."
+}
+
+switch ($Action) {
+    "Create" {
+        Create-User -Username $Username -Password $Password -FullName $FullName
+    }
+    "Modify" {
+        Modify-User -Username $Username -Password $Password -FullName $FullName
+    }
+    "Delete" {
+        Delete-User -Username $Username
+    }
+}

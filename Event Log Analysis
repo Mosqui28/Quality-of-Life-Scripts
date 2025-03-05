@@ -1,0 +1,25 @@
+# This script analyzes Windows Event Logs and generates reports on specific events.
+
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$LogName,
+
+    [Parameter(Mandatory = $true)]
+    [string]$EventID,
+
+    [Parameter(Mandatory = $true)]
+    [string]$OutputFile
+)
+
+function Analyze-EventLog {
+    param (
+        [string]$Log,
+        [string]$ID,
+        [string]$Output
+    )
+    $events = Get-WinEvent -LogName $Log -FilterXPath "*[System[(EventID=$ID)]]"
+    $events | Export-Csv -Path $Output -NoTypeInformation
+    Write-Host "Event log analysis completed. Report saved to $Output."
+}
+
+Analyze-EventLog -Log $LogName -ID $EventID -Output $OutputFile

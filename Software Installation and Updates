@@ -1,0 +1,55 @@
+# This script installs or updates software using various package managers.
+
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$PackageManager,
+
+    [Parameter(Mandatory = $true)]
+    [string]$PackageName
+)
+
+function Show-Progress {
+    param (
+        [int]$ActivityId,
+        [string]$StatusMessage,
+        [int]$PercentComplete
+    )
+    Write-Progress -Activity "Installing or Updating Software" -Status $StatusMessage -PercentComplete $PercentComplete -Id $ActivityId
+}
+
+function InstallOrUpdate-WinGet {
+    Show-Progress -ActivityId 1 -StatusMessage "WinGet" -PercentComplete 0
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        winget upgrade $PackageName -e --id "$PackageName" --accept-source-agreements --accept-package-agreements
+    } else {
+        winget install $PackageName -e --id "$PackageName" --accept-source-agreements --accept-package-agreements
+    }
+    Show-Progress -ActivityId 1 -StatusMessage "WinGet" -PercentComplete 100
+}
+
+function InstallOrUpdate-Scoop {
+    Show-Progress -ActivityId 2 -StatusMessage "Scoop" -PercentComplete 0
+    if (Get-Command scoop -ErrorAction SilentlyContinue) {
+        scoop update $PackageName
+    } else {
+        scoop install $PackageName
+    }
+    Show-Progress -ActivityId 2 -StatusMessage "Scoop" -PercentComplete 100
+}
+
+function InstallOrUpdate-Choco {
+    Show-Progress -ActivityId 3 -StatusMessage "Chocolatey" -PercentComplete 0
+    if (Get-Command choco -ErrorAction SilentlyContinue) {
+        choco upgrade $PackageName -y
+    } else {
+        choco install $PackageName -y
+    }
+    Show-Progress -ActivityId 3 -StatusMessage "Chocolatey" -PercentComplete 100
+}
+
+switch ($PackageManager) {
+    "WinGet" { InstallOrUpdate-WinGet }
+    "Scoop" { InstallOrUpdate-Scoop }
+    "Chocolatey" { InstallOrUpdate-Choco }
+}
+Write-Host "$PackageManager installation or update for $PackageName completed successfully."

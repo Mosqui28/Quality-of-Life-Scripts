@@ -1,0 +1,23 @@
+# This script backs up specified directories to a target location.
+
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$SourceDirectory,
+
+    [Parameter(Mandatory = $true)]
+    [string]$TargetDirectory
+)
+
+function Backup-Files {
+    param (
+        [string]$Source,
+        [string]$Target
+    )
+    if (-Not (Test-Path -Path $Target)) {
+        New-Item -ItemType Directory -Path $Target
+    }
+    Copy-Item -Path $Source -Destination $Target -Recurse -Force
+    Write-Host "Backup completed from $Source to $Target"
+}
+
+Backup-Files -Source $SourceDirectory -Target $TargetDirectory

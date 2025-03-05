@@ -1,0 +1,12 @@
+# This script performs a series of health checks on the system and generates a report.
+
+function Check-CPUUsage {
+    Get-WmiObject Win32_Processor | Select-Object Name, LoadPercentage
+}
+
+function Check-MemoryUsage {
+    Get-WmiObject Win32_OperatingSystem | Select-Object TotalVisibleMemorySize, FreePhysicalMemory
+}
+
+function Check-DiskUsage {
+    Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{Name="UsedGB";Expression={[math]::round($_.Used/1GB, 2)}}, @{Name="FreeGB";Expression={[math]::round($_.Free/1GB, 2
